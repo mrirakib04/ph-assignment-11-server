@@ -11,7 +11,10 @@ const app = express();
 // middleware
 app.use(
   cors({
-    origin: ["https://mrirakib-ph-assignment-11.netlify.app"],
+    origin: [
+      "https://mrirakib-ph-assignment-11.netlify.app",
+      "http://localhost:5173",
+    ],
     credentials: true,
   })
 );
@@ -42,6 +45,12 @@ async function run() {
     // Connections
     const database = client.db(process.env.DB_NAME);
     const usersCollection = database.collection("users");
+
+    // GET All Users
+    app.get("/users", async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -50,9 +59,9 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("EcoTrack server");
+  res.send("NextRun Tracker server");
 });
 
 app.listen(port, () => {
-  console.log(`EcoTrack server listening on port ${port}`);
+  console.log(`NextRun Tracker server listening on port ${port}`);
 });
