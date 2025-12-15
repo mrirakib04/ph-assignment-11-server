@@ -70,6 +70,18 @@ async function run() {
       const result = await usersCollection.findOne({ email });
       res.send(result);
     });
+    // UPDATE user
+    app.patch("/users/role/:id", async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { role } }
+      );
+
+      res.send(result);
+    });
 
     // CREATE New Product
     app.post("/products", async (req, res) => {
