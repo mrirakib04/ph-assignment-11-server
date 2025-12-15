@@ -82,6 +82,23 @@ async function run() {
 
       res.send(result);
     });
+    // SUSPEND user
+    app.patch("/users/suspend/:id", async (req, res) => {
+      const { id } = req.params;
+      const { suspendReason } = req.body;
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            status: "suspended",
+            suspendReason,
+          },
+        }
+      );
+
+      res.send(result);
+    });
 
     // CREATE New Product
     app.post("/products", async (req, res) => {
