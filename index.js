@@ -45,6 +45,7 @@ async function run() {
     // Connections
     const database = client.db(process.env.DB_NAME);
     const usersCollection = database.collection("users");
+    const productsCollection = database.collection("products");
 
     // GET All Users
     app.get("/users", async (req, res) => {
@@ -67,6 +68,21 @@ async function run() {
     app.get("/users/:email", async (req, res) => {
       const email = req.params.email;
       const result = await usersCollection.findOne({ email });
+      res.send(result);
+    });
+
+    // CREATE New Product
+    app.post("/products", async (req, res) => {
+      const product = req.body;
+
+      if (!product?.title || !product?.productOwner) {
+        return res.status(400).send({ message: "Missing required fields" });
+      }
+
+      product.createdAt = new Date();
+      product.status = "active";
+
+      const result = await productsCollection.insertOne(product);
       res.send(result);
     });
   } finally {
