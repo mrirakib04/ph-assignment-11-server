@@ -103,6 +103,18 @@ async function run() {
 
       res.send(result);
     });
+    // UPDATE showOnHome
+    app.patch("/products/show-home/:id", async (req, res) => {
+      const { id } = req.params;
+      const { showOnHome } = req.body;
+
+      const result = await productsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { showOnHome } }
+      );
+
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
