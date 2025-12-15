@@ -93,6 +93,16 @@ async function run() {
       const result = await productsCollection.find(query).toArray();
       res.send(result);
     });
+    // DELETE Product
+    app.delete("/products/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await productsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
