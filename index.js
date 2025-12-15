@@ -85,6 +85,14 @@ async function run() {
       const result = await productsCollection.insertOne(product);
       res.send(result);
     });
+    // GET Products by Product Owner (Admin / Manager)
+    app.get("/products", async (req, res) => {
+      const ownerEmail = req.query.owner;
+
+      const query = ownerEmail ? { productOwner: ownerEmail } : {};
+      const result = await productsCollection.find(query).toArray();
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
