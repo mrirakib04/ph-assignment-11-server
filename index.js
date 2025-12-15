@@ -99,6 +99,22 @@ async function run() {
 
       res.send(result);
     });
+    // ACTIVATE user
+    app.patch("/users/activate/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            status: "active",
+            suspendReason: "",
+          },
+        }
+      );
+
+      res.send(result);
+    });
 
     // CREATE New Product
     app.post("/products", async (req, res) => {
