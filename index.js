@@ -85,13 +85,29 @@ async function run() {
       const result = await productsCollection.insertOne(product);
       res.send(result);
     });
-    // GET Products by Product Owner (Admin / Manager)
-    app.get("/products", async (req, res) => {
+    // GET Products by Product Owner with pagination
+    app.get("/admin/products", async (req, res) => {
       const ownerEmail = req.query.owner;
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
 
+      const skip = (page - 1) * limit;
       const query = ownerEmail ? { productOwner: ownerEmail } : {};
-      const result = await productsCollection.find(query).toArray();
-      res.send(result);
+
+      const total = await productsCollection.countDocuments(query);
+      const products = await productsCollection
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
+      res.send({
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        products,
+      });
     });
     // DELETE Product
     app.delete("/products/:id", async (req, res) => {
