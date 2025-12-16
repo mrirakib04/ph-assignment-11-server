@@ -218,6 +218,39 @@ async function run() {
 
       res.send(result);
     });
+    // GET All Products for General Page
+    app.get("/general/page/products", async (req, res) => {
+      try {
+        const { category, search, sort } = req.query;
+
+        let query = { status: "active" };
+
+        if (category) {
+          query.category = category;
+        }
+
+        if (search) {
+          query.title = { $regex: search, $options: "i" };
+        }
+
+        let sortQuery = {};
+        if (sort === "price_asc") {
+          sortQuery.price = 1;
+        }
+        if (sort === "price_desc") {
+          sortQuery.price = -1;
+        }
+
+        const products = await productsCollection
+          .find(query)
+          .sort(sortQuery)
+          .toArray();
+
+        res.send(products);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to load products" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
