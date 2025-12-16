@@ -115,6 +115,27 @@ async function run() {
 
       res.send(result);
     });
+    // Assign manager
+    app.put("/users/assign/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const { managerFor } = req.body;
+
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: { managerFor } }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        res.send({ success: true, message: "Manager assigned successfully" });
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Server error" });
+      }
+    });
 
     // CREATE New Product
     app.post("/products", async (req, res) => {
