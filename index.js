@@ -218,10 +218,13 @@ async function run() {
 
       res.send(result);
     });
-    // GET All Products for General Page
+    // GET All Products for General Page (with pagination)
     app.get("/general/page/products", async (req, res) => {
       try {
-        const { category, search, sort } = req.query;
+        const { category, search, sort, page = 1 } = req.query;
+
+        const limit = 12;
+        const skip = (Number(page) - 1) * limit;
 
         let query = { status: "active" };
 
@@ -234,19 +237,24 @@ async function run() {
         }
 
         let sortQuery = {};
-        if (sort === "price_asc") {
-          sortQuery.price = 1;
-        }
-        if (sort === "price_desc") {
-          sortQuery.price = -1;
-        }
+        if (sort === "price_asc") sortQuery.price = 1;
+        if (sort === "price_desc") sortQuery.price = -1;
+
+        const total = await productsCollection.countDocuments(query);
 
         const products = await productsCollection
           .find(query)
           .sort(sortQuery)
+          .skip(skip)
+          .limit(limit)
           .toArray();
 
-        res.send(products);
+        res.send({
+          products,
+          total,
+          page: Number(page),
+          totalPages: Math.ceil(total / limit),
+        });
       } catch (error) {
         res.status(500).send({ message: "Failed to load products" });
       }
