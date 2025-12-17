@@ -259,6 +259,24 @@ async function run() {
         res.status(500).send({ message: "Failed to load products" });
       }
     });
+    // GET Single Product for General Details Page
+    app.get("/general/product/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        const product = await productsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!product) {
+          return res.status(404).send({ message: "Product not found" });
+        }
+
+        res.send(product);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to load product details" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
