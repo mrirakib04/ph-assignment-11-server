@@ -3,6 +3,7 @@ import cors from "cors";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import Stripe from "stripe";
 dotenv.config();
 
 const port = process.env.PORT || 3030;
@@ -20,6 +21,8 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+
+const stripe = new Stripe(process.env.STRIPE_SK);
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_ACCESS}@cluster0.bfqzn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -47,6 +50,72 @@ async function run() {
     const usersCollection = database.collection("users");
     const productsCollection = database.collection("products");
     const ordersCollection = database.collection("orders");
+    const paymentsCollection = database.collection("payments");
+
+    // Payments
+    app.post("/create-payment-intent", async (req, res) => {
+      try {
+        const { amount, productId } = req.body;
+
+        if (!amount || !productId) {
+          return res.status(400).send({ message: "Missing payment info" });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100), // smallest unit
+          currency: "bdt", // or "usd"
+          metadata: { productId },
+        });
+
+        res.send({ clientSecret: paymentIntent.client_secret });
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Payment intent failed" });
+      }
+    });
+    app.post("/payments", async (req, res) => {
+      try {
+        const {
+          productId,
+          buyerEmail,
+          amount,
+          currency,
+          transactionId,
+          paymentMethod,
+        } = req.body;
+
+        if (!productId || !buyerEmail || !amount || !transactionId) {
+          return res.status(400).send({ message: "Missing payment fields" });
+        }
+
+        // prevent duplicate payment save
+        const exists = await paymentsCollection.findOne({ transactionId });
+        if (exists) {
+          return res.status(409).send({ message: "Payment already recorded" });
+        }
+
+        const paymentData = {
+          productId: new ObjectId(productId),
+          buyerEmail,
+          amount,
+          currency: currency || "BDT",
+          transactionId,
+          paymentMethod: paymentMethod || "card",
+          paymentStatus: "succeeded",
+          createdAt: new Date(),
+        };
+
+        const result = await paymentsCollection.insertOne(paymentData);
+
+        res.send({
+          success: true,
+          paymentId: result.insertedId,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to save payment" });
+      }
+    });
 
     // GET All Users
     app.get("/users", async (req, res) => {
