@@ -46,6 +46,7 @@ async function run() {
     const database = client.db(process.env.DB_NAME);
     const usersCollection = database.collection("users");
     const productsCollection = database.collection("products");
+    const ordersCollection = database.collection("orders");
 
     // GET All Users
     app.get("/users", async (req, res) => {
@@ -275,6 +276,71 @@ async function run() {
         res.send(product);
       } catch (error) {
         res.status(500).send({ message: "Failed to load product details" });
+      }
+    });
+
+    // CREATE ORDER (COD or PAID)
+    app.post("/orders", async (req, res) => {
+      try {
+        const order = req.body;
+
+        // Basic validation
+        if (
+          !order.productId ||
+          !order.buyerEmail ||
+          !order.orderQuantity ||
+          !order.totalPrice
+        ) {
+          return res.status(400).send({ message: "Missing required fields" });
+        }
+
+        // Fetch product to validate quantity
+        const product = await productsCollection.findOne({
+          _id: new ObjectId(order.productId),
+        });
+
+        if (!product) {
+          return res.status(404).send({ message: "Product not found" });
+        }
+
+        if (order.orderQuantity < product.moq) {
+          return res.status(400).send({
+            message: `Minimum order quantity is ${product.moq}`,
+          });
+        }
+
+        if (order.orderQuantity > product.quantity) {
+          return res.status(400).send({
+            message: "Order quantity exceeds available stock",
+          });
+        }
+
+        // Prepare order object
+        const newOrder = {
+          ...order,
+          paymentStatus:
+            order.paymentOption === "CashOnDelivery" ? "pending" : "paid",
+          transactionId: order.transactionId || null,
+          orderStatus: "pending",
+          createdAt: new Date(),
+        };
+
+        // Save order
+        const result = await ordersCollection.insertOne(newOrder);
+
+        // Reduce product quantity
+        await productsCollection.updateOne(
+          { _id: new ObjectId(order.productId) },
+          { $inc: { quantity: -order.orderQuantity } }
+        );
+
+        res.send({
+          success: true,
+          orderId: result.insertedId,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to place order" });
       }
     });
   } finally {
