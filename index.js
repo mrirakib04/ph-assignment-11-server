@@ -468,6 +468,39 @@ async function run() {
 
       res.send(orders);
     });
+    // APPROVE order
+    app.patch("/orders/approve/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await ordersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            orderStatus: "approved",
+            approvedAt: new Date(),
+          },
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(404).send({
+          success: false,
+          message: "Order not found or already processed",
+        });
+      }
+
+      if (result.modifiedCount === 0) {
+        return res.status(409).send({
+          success: false,
+          message: "Order already approved",
+        });
+      }
+
+      res.send({
+        success: true,
+        message: "Order approved successfully",
+      });
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
