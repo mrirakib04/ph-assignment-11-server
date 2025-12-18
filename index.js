@@ -242,29 +242,50 @@ async function run() {
       const result = await productsCollection.insertOne(product);
       res.send(result);
     });
-    // GET Products by Product Owner with pagination
+    // GET Products by Product Owner with pagination + search
     app.get("/admin/products", async (req, res) => {
-      const ownerEmail = req.query.owner;
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
+      try {
+        const ownerEmail = req.query.owner;
+        const search = req.query.search || "";
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
 
-      const skip = (page - 1) * limit;
-      const query = ownerEmail ? { productOwner: ownerEmail } : {};
+        const skip = (page - 1) * limit;
 
-      const total = await productsCollection.countDocuments(query);
-      const products = await productsCollection
-        .find(query)
-        .skip(skip)
-        .limit(limit)
-        .toArray();
+        // base query
+        const query = {};
 
-      res.send({
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        products,
-      });
+        if (ownerEmail) {
+          query.productOwner = ownerEmail;
+        }
+
+        // search by title or category
+        if (search) {
+          query.$or = [
+            { title: { $regex: search, $options: "i" } },
+            { category: { $regex: search, $options: "i" } },
+          ];
+        }
+
+        const total = await productsCollection.countDocuments(query);
+
+        const products = await productsCollection
+          .find(query)
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
+        res.send({
+          products,
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to load products" });
+      }
     });
     // DELETE Product
     app.delete("/products/:id", async (req, res) => {
