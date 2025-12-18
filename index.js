@@ -95,7 +95,7 @@ async function run() {
         }
 
         const paymentData = {
-          productId: new ObjectId(productId),
+          productId: productId,
           buyerEmail,
           amount,
           currency: currency || "BDT",
@@ -345,6 +345,27 @@ async function run() {
         res.send(product);
       } catch (error) {
         res.status(500).send({ message: "Failed to load product details" });
+      }
+    });
+    // UPDATE product
+    app.patch("/update/product/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const updatedProduct = req.body;
+
+        const result = await productsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedProduct }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Product not found" });
+        }
+
+        res.send({ success: true });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to update product" });
       }
     });
 
