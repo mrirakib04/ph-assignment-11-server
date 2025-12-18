@@ -501,6 +501,49 @@ async function run() {
         message: "Order approved successfully",
       });
     });
+    // REJECT order (with validation)
+    app.patch("/orders/reject/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        const result = await ordersCollection.updateOne(
+          { _id: new ObjectId(id), orderStatus: "pending" },
+          {
+            $set: {
+              orderStatus: "rejected",
+              rejectedAt: new Date(),
+            },
+          }
+        );
+
+        // order not found
+        if (result.matchedCount === 0) {
+          return res.status(404).send({
+            success: false,
+            message: "Order not found or already processed",
+          });
+        }
+
+        // no update happened
+        if (result.modifiedCount === 0) {
+          return res.status(400).send({
+            success: false,
+            message: "Order rejection failed",
+          });
+        }
+
+        res.send({
+          success: true,
+          message: "Order rejected successfully",
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({
+          success: false,
+          message: "Failed to reject order",
+        });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
