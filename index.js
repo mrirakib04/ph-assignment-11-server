@@ -454,6 +454,20 @@ async function run() {
         res.status(500).send({ message: "Failed to place order" });
       }
     });
+    // GET Pending Orders for Manager
+    app.get("/orders/pending/:email", async (req, res) => {
+      const { email } = req.params;
+
+      const orders = await ordersCollection
+        .find({
+          orderTo: email,
+          orderStatus: "pending",
+        })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.send(orders);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
