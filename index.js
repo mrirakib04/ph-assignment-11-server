@@ -558,6 +558,33 @@ async function run() {
 
       res.send(orders);
     });
+    // ADD tracking info
+    app.patch("/orders/tracking/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const tracking = req.body;
+
+        const result = await ordersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $push: {
+              tracking: {
+                ...tracking,
+                createdAt: new Date(),
+              },
+            },
+          }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).send({ message: "Order not found" });
+        }
+
+        res.send({ success: true });
+      } catch (error) {
+        res.status(500).send({ message: "Failed to add tracking" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
