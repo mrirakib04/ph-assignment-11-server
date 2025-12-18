@@ -544,6 +544,20 @@ async function run() {
         });
       }
     });
+    // GET Approved Orders for Manager
+    app.get("/orders/approved/:email", async (req, res) => {
+      const { email } = req.params;
+
+      const orders = await ordersCollection
+        .find({
+          orderTo: email,
+          orderStatus: "approved",
+        })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.send(orders);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
