@@ -507,7 +507,10 @@ async function run() {
         const { id } = req.params;
 
         const result = await ordersCollection.updateOne(
-          { _id: new ObjectId(id), orderStatus: "pending" },
+          {
+            _id: new ObjectId(id),
+            $or: [{ orderStatus: "pending" }, { orderStatus: "approved" }],
+          },
           {
             $set: {
               orderStatus: "rejected",
@@ -567,7 +570,7 @@ async function run() {
         const result = await ordersCollection.updateOne(
           { _id: new ObjectId(id) },
           {
-            $push: {
+            $set: {
               tracking: {
                 ...tracking,
                 createdAt: new Date(),
@@ -583,6 +586,49 @@ async function run() {
         res.send({ success: true });
       } catch (error) {
         res.status(500).send({ message: "Failed to add tracking" });
+      }
+    });
+    // GET ALL ORDERS (Admin)
+    app.get("/admin/all-orders/:email", async (req, res) => {
+      try {
+        const adminEmail = req.params.email;
+        const { page = 1, limit = 10, search = "", status = "" } = req.query;
+
+        const skip = (Number(page) - 1) * Number(limit);
+
+        const query = { orderTo: adminEmail };
+
+        // search by buyer or product
+        if (search) {
+          query.$or = [
+            { buyerEmail: { $regex: search, $options: "i" } },
+            { productTitle: { $regex: search, $options: "i" } },
+          ];
+        }
+
+        // filter by orderStatus
+        if (status) {
+          query.orderStatus = status;
+        }
+
+        const total = await ordersCollection.countDocuments(query);
+
+        const orders = await ordersCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(Number(limit))
+          .toArray();
+
+        res.send({
+          orders,
+          total,
+          page: Number(page),
+          totalPages: Math.ceil(total / limit),
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to load orders" });
       }
     });
   } finally {
