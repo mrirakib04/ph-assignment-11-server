@@ -717,6 +717,32 @@ async function run() {
         res.status(500).send({ message: "Failed to track order" });
       }
     });
+
+    // Dashboard stats
+    app.get("/dashboard/stats", async (req, res) => {
+      try {
+        const totalUsers = await usersCollection.countDocuments();
+        const totalProducts = await productsCollection.countDocuments();
+        const totalOrders = await ordersCollection.countDocuments();
+
+        // Calculate total revenue from payments
+        const payments = await paymentsCollection.find().toArray();
+        const totalRevenue = payments.reduce(
+          (sum, p) => sum + (p.amount || 0),
+          0
+        );
+
+        res.send({
+          totalUsers,
+          totalProducts,
+          totalOrders,
+          totalRevenue,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to load dashboard stats" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
