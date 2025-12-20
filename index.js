@@ -694,6 +694,29 @@ async function run() {
 
       res.send({ success: true });
     });
+    // TRACK ORDER (PUBLIC)
+    app.get("/orders/track/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ message: "Invalid Order ID" });
+        }
+
+        const order = await ordersCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!order) {
+          return res.send({});
+        }
+
+        res.send(order);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to track order" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
