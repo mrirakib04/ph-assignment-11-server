@@ -743,6 +743,27 @@ async function run() {
         res.status(500).send({ message: "Failed to load dashboard stats" });
       }
     });
+    // Order status counts
+    app.get("/dashboard/orders/status-count", async (req, res) => {
+      try {
+        const statuses = ["pending", "approved", "rejected", "cancelled"];
+
+        const counts = {};
+
+        for (const status of statuses) {
+          counts[status] = await ordersCollection.countDocuments({
+            orderStatus: status,
+          });
+        }
+
+        res.send(counts);
+      } catch (error) {
+        console.error(error);
+        res
+          .status(500)
+          .send({ message: "Failed to fetch order status counts" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
