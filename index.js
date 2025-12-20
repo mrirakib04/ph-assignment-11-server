@@ -631,6 +631,49 @@ async function run() {
         res.status(500).send({ message: "Failed to load orders" });
       }
     });
+    // GET My Orders (User)
+    app.get("/my-orders/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const { page = 1, limit = 10, search = "", status = "" } = req.query;
+
+        const skip = (Number(page) - 1) * Number(limit);
+
+        const query = { buyerEmail: email };
+
+        // search by product title or order id
+        if (search) {
+          query.$or = [
+            { productTitle: { $regex: search, $options: "i" } },
+            { transactionId: { $regex: search, $options: "i" } },
+          ];
+        }
+
+        // filter by status
+        if (status) {
+          query.orderStatus = status;
+        }
+
+        const total = await ordersCollection.countDocuments(query);
+
+        const orders = await ordersCollection
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(Number(limit))
+          .toArray();
+
+        res.send({
+          orders,
+          total,
+          page: Number(page),
+          totalPages: Math.ceil(total / limit),
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Failed to load orders" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
