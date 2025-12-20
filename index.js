@@ -674,6 +674,26 @@ async function run() {
         res.status(500).send({ message: "Failed to load orders" });
       }
     });
+    // PATCH Cancel Order
+    app.patch("/orders/cancel/:id", async (req, res) => {
+      const { id } = req.params;
+
+      const result = await ordersCollection.updateOne(
+        { _id: new ObjectId(id), orderStatus: "pending" },
+        {
+          $set: {
+            orderStatus: "cancelled",
+            cancelledAt: new Date(),
+          },
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return res.status(400).send({ message: "Order cannot be cancelled" });
+      }
+
+      res.send({ success: true });
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
