@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 import cookieParser from "cookie-parser";
+import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Stripe from "stripe";
 dotenv.config();
@@ -21,6 +22,18 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "Unauthorized" });
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) return res.status(403).send({ message: "Forbidden" });
+    req.decoded = decoded;
+    next();
+  });
+};
 
 const stripe = new Stripe(process.env.STRIPE_SK);
 
@@ -51,6 +64,33 @@ async function run() {
     const productsCollection = database.collection("products");
     const ordersCollection = database.collection("orders");
     const paymentsCollection = database.collection("payments");
+
+    // jwt
+    // CREATE JWT
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "none",
+          maxAge: 60 * 60 * 1000,
+        })
+        .send({ success: true });
+    });
+    // Delete JWT
+    app.post("/logout", async (req, res) => {
+      res
+        .clearCookie("token", {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
 
     // Payments
     app.post("/create-payment-intent", async (req, res) => {
