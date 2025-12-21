@@ -764,6 +764,30 @@ async function run() {
           .send({ message: "Failed to fetch order status counts" });
       }
     });
+
+    app.get("/home/products", async (req, res) => {
+      try {
+        const activeProducts = await productsCollection
+          .find({ showOnHome: true })
+          .sort({ createdAt: -1 })
+          .toArray();
+
+        const activeCount = activeProducts.length;
+
+        if (activeCount < 3) {
+          return res.send({ products: [] });
+        }
+
+        let finalCount = Math.floor(activeCount / 3) * 3;
+        finalCount = Math.min(finalCount, 12);
+
+        const products = activeProducts.slice(0, finalCount);
+
+        res.send({ products });
+      } catch (error) {
+        res.status(500).send({ message: "Failed to load home products" });
+      }
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
